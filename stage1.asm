@@ -13,7 +13,7 @@
 
 		JMP	Stage1		; Jump instruction
 BS_jmpBoot2	DB	0x90
-BS_OEMName	DB	"ZuriOS  "	; OEM Name
+BS_OEMName	DB	"ZULINX  "	; OEM Name
 
 BPB_BytsPerSec	DW	0x0200		; The number of bytes per sector
 BPB_SecPerClus	DB	0x01		; The number of sectors per cluster
@@ -31,7 +31,7 @@ BS_DrvNum	DB	0x00		; Drive number				(0x00 for a floppy disk)
 BS_Reserved1	DB	0x00		; Reserved
 BS_BootSig	DB	0x29		; Signature				(either 0x28 or 0x29)
 BS_VolID	DD	0x19941226	; Volume seriral number
-BS_VolLab	DB	"ZuriFD     "	; Volume label
+BS_VolLab	DB	"ZURIFD     "	; Volume label
 BS_FilSysType	DB	"FAT12   "	; Filesystem ID				(either FAT12 or FAT16)
 
 
