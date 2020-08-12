@@ -1,6 +1,6 @@
 ;/****************************************************
-; File: boot.asm
-; Description: Bootloader
+; File: stage1.asm
+; Description: Bootloader (Stage 1)
 ;****************************************************/
 
 [BITS 16]
@@ -11,7 +11,7 @@
 ; BIOS parameter blocks (FAT12)
 ;=====================================================
 
-		JMP	BOOT		; Jump instruction
+		JMP	Stage1		; Jump instruction
 BS_jmpBoot2	DB	0x90
 BS_OEMName	DB	"ZuriOS  "	; OEM Name
 
@@ -38,7 +38,7 @@ BS_FilSysType	DB	"FAT12   "	; Filesystem ID				(either FAT12 or FAT16)
 ;=====================================================
 ; Bootstrap Code
 ;=====================================================
-BOOT:
+Stage1:
 		CLI
 
 ; Initialization
@@ -62,6 +62,7 @@ BOOT:
 ; Read FAT
 		CALL	ResetFD
 		CALL	LoadFat
+		CALL	LoadRoot
 
 		HLT
 
@@ -214,12 +215,56 @@ FatLoaded:
 FatLoadedMsg	DB	"FAT Loaded!", 0x0a, 0x0d, 0x00
 
 
-Debug:
-		MOV	SI, DebugMsg
+
+;/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+; Load Root Directory From Floppy
+;/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
+RootMemAddr	DW	0xA200
+
+LoadRoot:
+		MOV	BX, WORD [RootMemAddr]
+		XCHG	AX, CX				; Save the start sector number into CX
+		MOV	AX, 0x0020			; Set the entry size (32 byte)
+		MUL	WORD [BPB_RootEntCnt]		; Calculate the total size in byte
+		ADD	AX, WORD [BPB_BytsPerSec]
+		DEC	AX
+		DIV	WORD [BPB_BytsPerSec]		; Calculate the number of sectors
+		XCHG	AX, CX				; AX: The start sector number
+							; CX: The number of sectors to read
+ReadRoot:
+		CALL	ReadSector
+		ADD	BX, WORD [BPB_BytsPerSec]
+		INC	AX
+		DEC	CX
+		JCXZ	RootLoaded
+		JMP	ReadRoot
+RootLoaded:
+		MOV	SI, RootLoadedMsg
 		CALL	DisplayMessage
-		HLT
-		
-DebugMsg	DB	"DEBUG", 0x00
+		RET
+
+RootLoadedMsg	DB	"Root Directory Loaded!", 0x0a, 0x0d, 0x00
+
 
 		TIMES	510 - ($ - $$) DB 0
 		DW	0xAA55
+
+
+
+;=====================================================
+; Memory Layout
+; 0x00000000 ~ 0x000003FF: Interrupt Vector Table
+; 0x00000400 ~ 0x000004FF: BIOS Data
+; 0x00000500 ~ 0x00007BFF: Boot Loader (Stage 2)
+; 0x00007C00 ~ 0x00007DFF: Boot Loader (Stage 1)
+; 0x00007E00 ~ 0x0000A1FF: FAT
+; 0x0000A200 ~ 0x0000BDFF: Root Directory
+; 0x0000BE00 ~ 0x0009FFFF: Unused
+; 0x000A0000 ~ 0x000AFFFF: VRAM
+; 0x000B0000 ~ 0x000B7FFF: VRAM (Gray Scale)
+; 0x000B8000 ~ 0x000BFFFF: VRAM (Color)
+; 0x000C0000 ~ 0x000C7FFF: BIOS Video
+; 0x000C8000 ~ 0x000EFFFF: BIOS (Auxiliary)
+; 0x000F0000 ~ 0x000FFFFF: BIOS
+; 0x00100000 ~           : OS Kernel
+;=====================================================
