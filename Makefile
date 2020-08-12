@@ -1,3 +1,6 @@
+disk.img:
+	qemu-img create -f raw disk.img 1440K
+
 boot.img: boot.asm
 	nasm -o boot.img boot.asm
 
